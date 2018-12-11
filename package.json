@@ -12,15 +12,14 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "npm run rawtest",
-    "clean": "rm -rf dist",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "postformat": "tslint -p . --fix",
+    "start": "parcel src/index.html",
+    "clean": "rm -rf .cache dist",
     "prebuild": "npm run clean",
-    "build": "tsc",
-    "pretest": "npm run format && npm run build",
-    "rawtest": "ts-node test/index.ts",
-    "prepublishOnly": "npm run rawtest && npm run build"
+    "build": "parcel build src/index.html",
+    "preupload": "npm run build",
+    "upload": "surge dist i-got-worms.surge.sh",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "postformat": "tslint -p . --fix"
   },
   "husky": {
     "hook": {
@@ -30,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^8.10.38",
     "husky": "^1.2.0",
+    "parcel": "^1.10.3",
     "prettier": "^1.15.3",
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0",
