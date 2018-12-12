@@ -1,3 +1,5 @@
+import { displayJSON } from '@beenotung/tslib/html';
+
 const make_input = (name, type) =>
   `<tr>
 <td><label for="${name}">${name}</label></td>
@@ -19,22 +21,33 @@ const build = options => {
   const e = document.createElement('div');
   e.innerHTML = s;
   document.body.append(e);
-  const xs = e.querySelectorAll('[id]');
-  const res: any = {};
-  xs.forEach(x => {
-    res[x.id] = x;
+  const es = e.querySelectorAll('[id]');
+  const res: {
+    [id: string]: HTMLInputElement
+  } & {
+    get: (id: string) => number
+  } = {
+    get: (id: string) => +res[id].value,
+  } as any;
+  es.forEach((e: HTMLInputElement) => {
+    res[e.id] = e;
+    e.value = localStorage.getItem(e.id);
+    e.onchange = evt => {
+      localStorage.setItem(e.id, e.value);
+    };
   });
   names.forEach(name => {
     res[`${name}-up`].onclick = () => {
-      res[name].value = res[name].value * 1000;
+      let e = res[name];
+      e.value = (+e.value * 1000).toString();
+      localStorage.setItem(e.id, e.value);
     };
     res[`${name}-down`].onclick = () => {
-      res[name].value = res[name].value / 1000;
+      let e = res[name];
+      e.value = (+e.value / 1000).toString();
+      localStorage.setItem(e.id, e.value);
     };
   });
-  res.get = id => {
-    return res[id].value * 1;
-  };
   return res;
 };
 let inputs = build([
@@ -50,8 +63,18 @@ const calc = document.createElement('button');
 calc.textContent = 'calc';
 document.body.append(calc);
 
+const outputContainer = document.createElement('div');
+outputContainer.id = 'output';
+document.body.append(outputContainer);
+outputContainer.innerHTML = `<style>
+#output td {
+  border: 1px solid black;
+  padding: 0.5em;
+}
+</style>`;
 const output = document.createElement('div');
-document.body.append(output);
+outputContainer.append(output);
+
 
 const round_number = x => {
   return Math.round(x * 100) / 100;
@@ -74,26 +97,40 @@ const format_time = diff => {
 };
 
 calc.onclick = event => {
-  let msg = '';
-  let diff = 0;
-  let unit = '';
+  let msgs = {};
+  let diff_time = 0;
+  let diff_unit = '';
 
   const rate = inputs.get('production_rate');
   const cash = inputs.get('cash');
   const target = inputs.get('target');
 
-  diff = (target - cash) / rate;
-  [diff, unit] = format_time(diff);
-  msg += `<p>${round_number(diff)} ${unit} for target</p>`;
+  diff_time = (target - cash) / rate;
+  [diff_time, diff_unit] = format_time(diff_time);
+  msgs['reach target'] = round_number(diff_time) + ' ' + diff_unit;
 
   const up_percent = inputs.get('up_percent');
   const up_cost = inputs.get('up_cost');
   const up_ratio = inputs.get('up_ratio');
   const up_rate = (up_ratio * rate) / 100;
 
-  diff = (target - cash + up_cost) / (rate + (up_rate * up_percent) / 100);
-  [diff, unit] = format_time(diff);
-  msg += `<p>${round_number(diff)} ${unit} if upgrade</p>`;
+  diff_time = (up_cost - cash) / rate;
+  // check if already have enough cash to upgrade
+  if (diff_time < 0) {
+    diff_time = 0;
+  }
+  let time_to_upgrade = diff_time;
+  [diff_time, diff_unit] = format_time(diff_time);
+  msgs['to upgrade'] = round_number(diff_time) + ' ' + diff_unit;
 
-  output.innerHTML = msg;
+  // assume the upgrade will used up all cash
+  let new_cash = cash + time_to_upgrade * rate - up_cost;
+  let new_rate = rate + (up_rate * up_percent / 100);
+  diff_time = time_to_upgrade + (target - new_cash) / new_rate;
+  [diff_time, diff_unit] = format_time(diff_time);
+  msgs['reach target if upgrade'] = round_number(diff_time) + ' ' + diff_unit;
+
+  let table = displayJSON(msgs, 'table');
+
+  output.innerHTML = '<p>Time to:</p>' + table;
 };
