@@ -100,14 +100,16 @@ calc.onclick = event => {
   let msgs = {};
   let diff_time = 0;
   let diff_unit = '';
+  let diff_time_text = '';
 
   const rate = inputs.get('production_rate');
   const cash = inputs.get('cash');
   const target = inputs.get('target');
 
   diff_time = (target - cash) / rate;
+  diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
   [diff_time, diff_unit] = format_time(diff_time);
-  msgs['reach target'] = round_number(diff_time) + ' ' + diff_unit;
+  msgs['reach target'] = `${round_number(diff_time)} ${diff_unit}</td><td>${diff_time_text}`;
 
   const up_percent = inputs.get('up_percent');
   const up_cost = inputs.get('up_cost');
@@ -115,20 +117,22 @@ calc.onclick = event => {
   const up_rate = (up_ratio * rate) / 100;
 
   diff_time = (up_cost - cash) / rate;
+  diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
   // check if already have enough cash to upgrade
   if (diff_time < 0) {
     diff_time = 0;
   }
   let time_to_upgrade = diff_time;
   [diff_time, diff_unit] = format_time(diff_time);
-  msgs['to upgrade'] = round_number(diff_time) + ' ' + diff_unit;
+  msgs['upgrade'] = `${round_number(diff_time)} ${diff_unit}</td><td>${diff_time_text}`;
 
   // assume the upgrade will used up all cash
   let new_cash = cash + time_to_upgrade * rate - up_cost;
   let new_rate = rate + (up_rate * up_percent / 100);
   diff_time = time_to_upgrade + (target - new_cash) / new_rate;
+  diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
   [diff_time, diff_unit] = format_time(diff_time);
-  msgs['reach target if upgrade'] = round_number(diff_time) + ' ' + diff_unit;
+  msgs['reach target if upgrade'] = `${round_number(diff_time)} ${diff_unit}</td><td>${diff_time_text}`;
 
   let table = displayJSON(msgs, 'table');
 
