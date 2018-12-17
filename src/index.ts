@@ -13,7 +13,7 @@ const make_inputs = options => {
     .map(([name, type]) => make_input(name, type))
     .join('')}</tbody></table>`;
 };
-const in_array = (x, xs) => xs.indexOf(x) !== -1;
+// const in_array = (x, xs) => xs.indexOf(x) !== -1;
 
 const build = options => {
   const names = options.map(x => x[0]);
@@ -23,11 +23,13 @@ const build = options => {
   document.body.append(e);
   const es = e.querySelectorAll('[id]');
   const res: {
-    [id: string]: HTMLInputElement
+    [id: string]: HTMLInputElement;
   } & {
-    get: (id: string) => number
+    get: (id: string) => number;
+    set: (id: string, value: number) => void;
   } = {
     get: (id: string) => +res[id].value,
+    set: (id: string, value: number) => (res[id].value = value.toString()),
   } as any;
   es.forEach((e: HTMLInputElement) => {
     res[e.id] = e;
@@ -38,19 +40,19 @@ const build = options => {
   });
   names.forEach(name => {
     res[`${name}-up`].onclick = () => {
-      let e = res[name];
+      const e = res[name];
       e.value = (+e.value * 1000).toString();
       localStorage.setItem(e.id, e.value);
     };
     res[`${name}-down`].onclick = () => {
-      let e = res[name];
+      const e = res[name];
       e.value = (+e.value / 1000).toString();
       localStorage.setItem(e.id, e.value);
     };
   });
   return res;
 };
-let inputs = build([
+const inputs = build([
   ['cash', 'text'],
   ['production_rate', 'text'],
   ['target', 'text'],
@@ -63,6 +65,10 @@ const calc = document.createElement('button');
 calc.textContent = 'calc';
 document.body.append(calc);
 
+const upgrade = document.createElement('button');
+upgrade.textContent = 'upgrade';
+document.body.appendChild(upgrade);
+
 const outputContainer = document.createElement('div');
 outputContainer.id = 'output';
 document.body.append(outputContainer);
@@ -74,7 +80,6 @@ outputContainer.innerHTML = `<style>
 </style>`;
 const output = document.createElement('div');
 outputContainer.append(output);
-
 
 const round_number = x => {
   return Math.round(x * 100) / 100;
@@ -97,7 +102,7 @@ const format_time = diff => {
 };
 
 calc.onclick = event => {
-  let msgs = {};
+  const msgs = {};
   let diff_time = 0;
   let diff_unit = '';
   let diff_time_text = '';
@@ -109,7 +114,9 @@ calc.onclick = event => {
   diff_time = (target - cash) / rate;
   diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
   [diff_time, diff_unit] = format_time(diff_time);
-  msgs['reach target'] = `${round_number(diff_time)} ${diff_unit}</td><td>${diff_time_text}`;
+  msgs['reach target'] = `${round_number(
+    diff_time,
+  )} ${diff_unit}</td><td>${diff_time_text}`;
 
   const up_percent = inputs.get('up_percent');
   const up_cost = inputs.get('up_cost');
@@ -122,19 +129,29 @@ calc.onclick = event => {
   if (diff_time < 0) {
     diff_time = 0;
   }
-  let time_to_upgrade = diff_time;
+  const time_to_upgrade = diff_time;
   [diff_time, diff_unit] = format_time(diff_time);
-  msgs['upgrade'] = `${round_number(diff_time)} ${diff_unit}</td><td>${diff_time_text}`;
+  msgs.upgrade = `${round_number(
+    diff_time,
+  )} ${diff_unit}</td><td>${diff_time_text}`;
 
   // assume the upgrade will used up all cash
-  let new_cash = cash + time_to_upgrade * rate - up_cost;
-  let new_rate = rate + (up_rate * up_percent / 100);
+  const new_cash = cash + time_to_upgrade * rate - up_cost;
+  const new_rate = rate + (up_rate * up_percent) / 100;
   diff_time = time_to_upgrade + (target - new_cash) / new_rate;
   diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
   [diff_time, diff_unit] = format_time(diff_time);
-  msgs['reach target if upgrade'] = `${round_number(diff_time)} ${diff_unit}</td><td>${diff_time_text}`;
+  msgs['reach target if upgrade'] = `${round_number(
+    diff_time,
+  )} ${diff_unit}</td><td>${diff_time_text}`;
 
-  let table = displayJSON(msgs, 'table');
+  const table = displayJSON(msgs, 'table');
 
   output.innerHTML = '<p>Time to:</p>' + table;
+
+  upgrade.onclick = event => {
+    inputs.set('cash', new_cash);
+    inputs.set('production_rate', new_rate);
+    calc.onclick(event);
+  };
 };
