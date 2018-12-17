@@ -102,7 +102,7 @@ const format_time = diff => {
 };
 
 calc.onclick = event => {
-  const msgs = {};
+  const msgs: { [name: string]: string } = {};
   let diff_time = 0;
   let diff_unit = '';
   let diff_time_text = '';
@@ -112,6 +112,7 @@ calc.onclick = event => {
   const target = inputs.get('target');
 
   diff_time = (target - cash) / rate;
+  diff_time = Math.max(diff_time, 0);
   diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
   [diff_time, diff_unit] = format_time(diff_time);
   msgs['reach target'] = `${round_number(
@@ -121,14 +122,10 @@ calc.onclick = event => {
   const up_percent = inputs.get('up_percent');
   const up_cost = inputs.get('up_cost');
   const up_ratio = inputs.get('up_ratio');
-  const up_rate = (up_ratio * rate) / 100;
 
   diff_time = (up_cost - cash) / rate;
+  diff_time = Math.max(diff_time, 0);
   diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
-  // check if already have enough cash to upgrade
-  if (diff_time < 0) {
-    diff_time = 0;
-  }
   const time_to_upgrade = diff_time;
   [diff_time, diff_unit] = format_time(diff_time);
   msgs.upgrade = `${round_number(
@@ -137,8 +134,11 @@ calc.onclick = event => {
 
   // assume the upgrade will used up all cash
   const new_cash = cash + time_to_upgrade * rate - up_cost;
-  const new_rate = rate + (up_rate * up_percent) / 100;
+  const other_rate = rate * (1 - up_ratio / 100);
+  const new_up_rate = rate * (up_ratio / 100) * (1 + up_percent / 100);
+  const new_rate = other_rate + new_up_rate;
   diff_time = time_to_upgrade + (target - new_cash) / new_rate;
+  diff_time = Math.max(diff_time, 0);
   diff_time_text = new Date(Date.now() + diff_time * 1000).toLocaleString();
   [diff_time, diff_unit] = format_time(diff_time);
   msgs['reach target if upgrade'] = `${round_number(
@@ -150,8 +150,10 @@ calc.onclick = event => {
   output.innerHTML = '<p>Time to:</p>' + table;
 
   upgrade.onclick = event => {
+    const new_up_ratio = (new_up_rate / new_rate) * 100;
     inputs.set('cash', new_cash);
     inputs.set('production_rate', new_rate);
+    inputs.set('up_ratio', new_up_ratio);
     calc.onclick(event);
   };
 };
