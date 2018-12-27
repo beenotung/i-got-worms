@@ -1,16 +1,16 @@
 import { displayJSON } from '@beenotung/tslib/html';
 
-const make_input = (name, type) =>
+const make_input = (name, type, step, min) =>
   `<tr>
 <td><label for="${name}">${name}</label></td>
 <td><button id="${name}-down">v 1e3</button></td>
-<td><input id="${name}" name="${name}" type="${type}"></td>
+<td><input id="${name}" name="${name}" type="${type}" step="${step}" min="${min}"></td>
 <td><button id="${name}-up">^ 1e3</button></td>
 </tr>`;
 
 const make_inputs = options => {
   return `<table><tbody>${options
-    .map(([name, type]) => make_input(name, type))
+    .map(([name, type, step, min]) => make_input(name, type, step, min))
     .join('')}</tbody></table>`;
 };
 // const in_array = (x, xs) => xs.indexOf(x) !== -1;
@@ -52,14 +52,19 @@ const build = options => {
   });
   return res;
 };
-const inputs = build([
-  ['cash', 'text'],
-  ['production_rate', 'text'],
-  ['target', 'text'],
-  ['up_percent', 'text'],
-  ['up_cost', 'text'],
-  ['up_ratio', 'text'],
-]);
+const inputType = 'number';
+const stepSize = 1 / 1000 / 1000;
+const minValue = 0;
+const inputs = build(
+  [
+    ['cash'],
+    ['production_rate'],
+    ['target'],
+    ['up_percent'],
+    ['up_cost'],
+    ['up_ratio'],
+  ].map(([name]) => [name, inputType, stepSize, minValue]),
+);
 
 const calc = document.createElement('button');
 calc.textContent = 'calc';
